@@ -16,6 +16,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);
+
+        // Render (and similar PaaS platforms) terminate TLS at their edge and
+        // forward plain HTTP to the container. Without trusting that proxy,
+        // Laravel thinks every request is HTTP, generating http:// URLs and
+        // never marking cookies Secure. The app itself is never reached
+        // directly from the internet on these platforms, so trusting all
+        // proxies is the standard, safe approach here.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
