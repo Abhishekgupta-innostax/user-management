@@ -28,9 +28,11 @@ class UserAuthController extends Controller
             'role' => Role::User,
         ]);
 
-        Auth::login($user);
-
-        // BUG F01 (intentional): should redirect to 'dashboard' after registration.
+        // BUG F01 (intentional): should call Auth::login($user) here and
+        // redirect to 'dashboard'. Skipping the login means the redirect to
+        // 'login' actually lands on the login form (a logged-in session
+        // would otherwise be bounced back to /dashboard by the 'guest'
+        // middleware, masking the bug).
         return redirect()->route('login');
     }
 
