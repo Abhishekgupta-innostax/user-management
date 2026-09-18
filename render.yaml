@@ -43,6 +43,8 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: MYSQL_ATTR_SSL_CA
+        value: /var/www/html/docker/certs/aiven-ca.pem
       - key: RUN_MIGRATIONS_ON_BOOT
         value: "true"
       - key: INITIAL_ADMIN_NAME
