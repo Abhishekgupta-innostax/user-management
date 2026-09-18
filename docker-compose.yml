@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: um_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8080:80"
+    # Deliberately NOT setting DB_HOST/DB_DATABASE/etc. here: they already live in
+    # .env (bind-mounted into the container), which Laravel reads directly. Setting
+    # them again here would make them real container-level OS environment variables,
+    # which take precedence over both .env AND phpunit.xml's test-time overrides
+    # (Laravel's dotenv loading never overwrites an already-set OS env var) — that
+    # previously caused `php artisan test` to silently use the dev MySQL "database"
+    # name as a stray physical SQLite file instead of a true :memory: database.
+    environment:
+      APACHE_RUN_USER: "#${DOCKER_UID:-1000}"
+      APACHE_RUN_GROUP: "#${DOCKER_GID:-1000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - um_network
+
+  db:
+    image: mysql:8.0
+    container_name: um_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-user_management}
+      MYSQL_USER: ${DB_USERNAME:-um_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-um_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-um_root_password}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - um_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-um_root_password}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - um_network
+
+volumes:
+  um_mysql_data:
+
+networks:
+  um_network:
+    driver: bridge
