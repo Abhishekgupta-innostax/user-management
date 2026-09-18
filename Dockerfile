@@ -31,4 +31,19 @@ COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.con
 
 RUN sed -i 's/upload_max_filesize = .*/upload_max_filesize = 20M/' /usr/local/etc/php/php.ini-production 2>/dev/null || true
 
+# The application source is bind-mounted over this in local dev (see
+# docker-compose.yml), but a standalone `docker build` (e.g. on a hosting
+# platform with no bind mount) needs the code and vendor/ baked into the
+# image, so both are added here.
+COPY . .
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80
+
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["apache2-foreground"]
